@@ -1,0 +1,61 @@
+[project]
+site_name = "v2hub API Documentation"
+site_description = "Official reference documentation for the v2hub VPN Subscription API."
+site_url = "https://docs.v2hub.link"
+
+repo_url = "https://github.com/nestthub/v2hub-api-docs"
+
+extra_css = ["assets/extra.css"]
+
+nav = [
+    { "Home" = "index.md" },
+    { "API Reference" = [
+        { "Overview" = "api/index.md" },
+        { "Authentication" = "api/authentication.md" },
+        { "Rate Limiting" = "api/rate-limiting.md" },
+        { "Public Endpoints" = "api/public-endpoints.md" },
+        { "Subscription Management" = "api/subscription-management.md" },
+        { "User Self-Service API" = "api/user-self-service.md" },
+        { "Provider API" = "api/provider-api.md" },
+        { "Admin Endpoints" = "api/admin-endpoints.md" },
+        { "Error Handling" = "api/errors.md" },
+        { "Examples" = "api/examples.md" },
+        { "Configuration Limits & Best Practices" = "api/best-practices.md" },
+    ] },
+    { "Types Reference" = [
+        { "Overview & Base Types" = "types/index.md" },
+        { "Enumerations" = "types/enumerations.md" },
+        { "Request Models" = "types/request-models.md" },
+        { "Response Models" = "types/response-models.md" },
+        { "Admin Models" = "types/admin-models.md" },
+        { "Validation Rules" = "types/validation-rules.md" },
+    ] },
+]
+
+[project.theme]
+variant = "modern"
+features = [
+    "navigation.tabs",
+    "navigation.tabs.sticky",
+    "navigation.indexes",
+    "navigation.top",
+    "navigation.footer",
+    "content.code.copy",
+    "content.tooltips",
+    "content.action.edit",
+]
+
+logo = "images/logo.svg"
+favicon = "images/logo.svg"
+
+[project.theme.font]
+text = "Inter"
+code = "JetBrains Mono"
+
+[[project.theme.palette]]
+scheme = "slate"
+primary = "black"
+accent = "indigo"
+
+[project.extra]
+generator = false
