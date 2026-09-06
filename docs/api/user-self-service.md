@@ -1,6 +1,6 @@
 # User Self-Service API
 
-Endpoints for the authenticated user to inspect their own account and manage their own provider connections. All endpoints require the `API-Token` header — see [Authentication](authentication.md).
+Endpoints for the authenticated user to inspect their own account and manage connections to providers that want to manage their subscriptions. All endpoints require `API-Token` (see [Authentication](authentication.md)).
 
 **Base Path**: `/api/v1/me`
 
@@ -8,7 +8,7 @@ Endpoints for the authenticated user to inspect their own account and manage the
 
 **Endpoint**: `GET /api/v1/me`
 
-**Response** (200 OK):
+**Response** `200 OK` ([`MeResponse`](../types/response-models.md#meresponse)):
 
 ```json
 {
@@ -19,25 +19,25 @@ Endpoints for the authenticated user to inspect their own account and manage the
 
 ---
 
-## List My Provider Connections
+## List My Connections
 
-Get all provider connections for the current user (pending and approved; revoked connections are excluded).
+Get every provider connection for the current user — pending, approved, or unspecified (a provider the caller has interacted with but that has no recorded status is returned with `status: null` rather than being excluded).
 
-**Endpoint**: `GET /api/v1/me/providers`
+**Endpoint**: `GET /api/v1/me/connections`
 
-**Response** (200 OK):
+**Response** `200 OK` ([`ConnectionsResponse`](../types/response-models.md#connectionsresponse)):
 
 ```json
 {
   "connections": [
     {
-      "provider_name": "MyVPNProvider",
+      "provider_name": "myprovider",
       "provider_url": "https://provider.com",
       "is_authorized": true,
       "status": "approved"
     },
     {
-      "provider_name": "AnotherProvider",
+      "provider_name": "another",
       "provider_url": null,
       "is_authorized": false,
       "status": "pending"
@@ -46,92 +46,62 @@ Get all provider connections for the current user (pending and approved; revoked
 }
 ```
 
----
-
-## Get Specific Provider Connection
-
-**Endpoint**: `GET /api/v1/me/providers/{provider_name}`
-
-**Parameters**:
-
-- `provider_name` (path, required): Provider name
-
-**Response** (200 OK):
-
-```json
-{
-  "provider_name": "MyVPNProvider",
-  "provider_url": "https://provider.com",
-  "is_authorized": true,
-  "status": "approved"
-}
-```
-
-**Error Responses**:
-
-- `404 Not Found`: Provider connection not found
+`is_authorized` is `true` exactly when `status == "approved"`; it's a derived convenience field, not independent state.
 
 ---
 
-## Approve Provider Connection
+## Get Specific Connection
 
-Approve a pending provider connection request.
+**Endpoint**: `GET /api/v1/me/connections/{provider_name}`
 
-**Endpoint**: `POST /api/v1/me/providers/{provider_name}/approve`
-
-**Parameters**:
-
-- `provider_name` (path, required): Provider name
-
-**Response** (200 OK): Same shape as [Get Specific Provider Connection](#get-specific-provider-connection), with `status: "approved"`
+**Response** `200 OK` ([`ConnectionResponse`](../types/response-models.md#connectionresponse)): same shape as one item of [List My Connections](#list-my-connections).
 
 **Error Responses**:
 
-- `404 Not Found`: Provider connection not found
-- `409 Conflict`: Connection is not in pending status, or the user has reached `MAX_PROVIDERS_PER_USER`
+- `404`: Provider with this name doesn't exist
 
 ---
 
-## Reject Provider Connection
+## Approve Connection
 
-Reject a pending provider connection request.
+Approve a pending connection request from a provider.
 
-**Endpoint**: `POST /api/v1/me/providers/{provider_name}/reject`
+**Endpoint**: `POST /api/v1/me/connections/{provider_name}/approve`
 
-**Parameters**:
-
-- `provider_name` (path, required): Provider name
-
-**Response** (200 OK): Same shape as [Get Specific Provider Connection](#get-specific-provider-connection)
-
-**Notes**:
-
-- If the user never had subscriptions from this provider, the authorization record is deleted outright.
-- If the user already had subscriptions from this provider, the record is kept with `status: "revoked"` instead, so past subscriptions remain traceable.
+**Response** `200 OK` ([`ConnectionResponse`](../types/response-models.md#connectionresponse)), with `status: "approved"`.
 
 **Error Responses**:
 
-- `404 Not Found`: Provider connection not found
-- `409 Conflict`: Connection is not in pending status
+- `404`: Provider or connection not found
+- `409`: `invalid_authorization_status` — the connection isn't currently `pending`
 
 ---
 
-## Revoke Provider Connection
+## Reject Connection
 
-Revoke a previously approved provider connection.
+Reject a pending connection request from a provider.
 
-**Endpoint**: `POST /api/v1/me/providers/{provider_name}/revoke`
+**Endpoint**: `POST /api/v1/me/connections/{provider_name}/reject`
 
-**Parameters**:
-
-- `provider_name` (path, required): Provider name
-
-**Response** (204 No Content): Empty body
-
-**Notes**:
-
-- Existing subscriptions created by that provider remain available; only future delegated management is revoked.
+**Response** `200 OK` ([`ConnectionResponse`](../types/response-models.md#connectionresponse)).
 
 **Error Responses**:
 
-- `404 Not Found`: Provider connection not found
+- `404`: Provider or connection not found
+- `409`: `invalid_authorization_status` — the connection isn't currently `pending`
+
+---
+
+## Revoke Connection
+
+Revoke a previously approved connection.
+
+**Endpoint**: `DELETE /api/v1/me/connections/{provider_name}`
+
+**Response** `204 No Content`
+
+Subscriptions the provider already created for this user are **not** deleted or hidden by revocation; only the provider's ability to manage them going forward is removed.
+
+**Error Responses**:
+
+- `404`: Provider or connection not found

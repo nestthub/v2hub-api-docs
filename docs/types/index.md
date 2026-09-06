@@ -1,33 +1,30 @@
 # Types Reference
 
-Complete reference for all request/response models used by the v2hub API.
+Complete reference for every request/response model used by the V2Hub API, read directly from the Pydantic schema definitions in `src/v2hub_api/schemas/`.
 
-## Overview
-
-This document defines all data types, request models, and response models used throughout the API. Types are organized by category and include validation rules.
-
-**API Version**: v1 (`1.1.2`)
+**API Version**: `v1`
 
 ## Pages
 
-| Page | Covers |
-| --- | --- |
-| [Base Types](#base-types) *(this page)* | Shared primitive type aliases used across models |
-| [Enumerations](enumerations.md) | `SourceType` and `ProviderAuthorizationStatus` |
-| [Request Models](request-models.md) | Every request body model (subscriptions, sources, providers, admin) |
-| [Response Models](response-models.md) | Every response model (subscriptions, sources, providers, connections, errors) |
-| [Admin Models](admin-models.md) | Admin-only request/response models (users, providers, bans, whitelist, stats) |
-| [Validation Rules](validation-rules.md) | Cross-cutting validation rules referenced throughout the other pages |
+| Page                                  | Covers                                                                                       |
+| ------------------------------------- | -------------------------------------------------------------------------------------------- |
+| [Enumerations](enumerations.md)       | `SourceType` and `ProviderAuthorizationStatus`                                               |
+| [Request Models](request-models.md)   | Subscription, source, and provider request bodies                                            |
+| [Response Models](response-models.md) | Subscription, source, connection, and error response shapes                                  |
+| [Admin Models](admin-models.md)       | Admin-only request/response models (users, providers, authorization, bans, whitelist, stats) |
 
 For the endpoints that use these types, see the [API Reference](../api/index.md).
 
-## Base Types
+## Base Identifier Formats
 
-Common type aliases used throughout the API.
+Common identifier shapes reused across many models — not Python type aliases in the source itself, but consistent formats worth knowing up front:
 
-```python
-Token = str  # Subscription token (unique identifier)
-Hash = str  # SHA-256 hash used for source IDs, provider hashes
-Timestamp = datetime  # ISO 8601 formatted datetime
-UserID = int  # Positive integer user identifier
-```
+| Kind                                         | Format             | Length               | Example                                |
+| -------------------------------------------- | ------------------ | -------------------- | -------------------------------------- |
+| Subscription token                           | Unpadded Base64URL | 43 chars             | `dGhpcyBpcyBhIHRva2Vu...`              |
+| API token                                    | Unpadded Base64URL | 43 chars             | `YW5vdGhlciB0b2tlbiBoZXJl...`          |
+| Source ID (hash)                             | Hex                | 32 chars             | `a1b2c3d4e5f67890a1b2c3d4e5f67890`     |
+| `user_hash` / `provider_hash` / `owner_hash` | UUID string        | 36 chars             | `3f2a1b9c-7d4e-4a1f-9c3e-8b2a1d4f5e6c` |
+| `user_id`                                    | Integer            | 1 to 999,999,999,999 | `12345`                                |
+
+All of the length/format constraints above are enforced by `Field(min_length=..., max_length=...)` (or `pattern=...`) on the actual Pydantic models — see [Configuration Limits](../api/configuration-limits.md) for the underlying constants.

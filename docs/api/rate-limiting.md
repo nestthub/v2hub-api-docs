@@ -1,28 +1,22 @@
 # Rate Limiting
 
-The API implements tiered rate limiting:
+Rate limits are enforced per-endpoint-type. Defaults, from `core/config.py`:
 
-| Endpoint Type         | Rate Limit | Scope                 |
-| --------------------- | ---------- | --------------------- |
-| Public (`/sub/*`)     | 3 req/sec  | Per IP                |
-| Internal (no token)   | 1 req/sec  | Per IP                |
-| Internal (with token) | 3 req/sec  | Per IP                |
-| Admin                 | No limit   | IP whitelist required |
+| Setting                   | Default   | Applies to                                                                                           |
+| ------------------------- | --------- | ---------------------------------------------------------------------------------------------------- |
+| `public_rps`              | 3 req/sec | Public endpoints (`/sub/{token}`)                                                                    |
+| `internal_no_token_rps`   | 1 req/sec | Internal endpoints (`/api/v1/...`) called without a valid `API-Token`                                |
+| `internal_with_token_rps` | 3 req/sec | Internal endpoints called with a valid `API-Token`                                                   |
+| —                         | No limit  | Admin endpoints (protected instead by IP allowlist + HMAC — see [Authentication](authentication.md)) |
 
-**Rate Limit Headers** (returned on all requests):
+Rate limiting is scoped per client IP address (via the same `get_client_ip` helper used by the admin IP allowlist and ban system).
 
-```http
-X-RateLimit-Limit: 3
-X-RateLimit-Remaining: 2
-X-RateLimit-Reset: 1714234567
-```
-
-**429 Response** (rate limit exceeded):
+**Exceeded limit** raises `RateLimitError`, which maps to `429` with `error: "too_many_requests"` and, when available, a `retry_after` value under `details` — see [Error Handling](errors.md).
 
 ```json
 {
   "error": "too_many_requests",
-  "message": "Rate limit exceeded",
+  "message": "Too many requests",
   "details": {
     "retry_after": 1.5
   }

@@ -1,6 +1,6 @@
 [project]
-site_name = "v2hub API Documentation"
-site_description = "Official reference documentation for the v2hub VPN Subscription API."
+site_name = "V2Hub API Documentation"
+site_description = "Official reference documentation for the V2Hub VPN Subscription API."
 site_url = "https://docs.v2hub.link"
 
 repo_url = "https://github.com/nestthub/v2hub-api-docs"
@@ -19,8 +19,7 @@ nav = [
         { "Provider API" = "api/provider-api.md" },
         { "Admin Endpoints" = "api/admin-endpoints.md" },
         { "Error Handling" = "api/errors.md" },
-        { "Examples" = "api/examples.md" },
-        { "Configuration Limits & Best Practices" = "api/best-practices.md" },
+        { "Configuration Limits" = "api/configuration-limits.md" },
     ] },
     { "Types Reference" = [
         { "Overview & Base Types" = "types/index.md" },
@@ -28,7 +27,6 @@ nav = [
         { "Request Models" = "types/request-models.md" },
         { "Response Models" = "types/response-models.md" },
         { "Admin Models" = "types/admin-models.md" },
-        { "Validation Rules" = "types/validation-rules.md" },
     ] },
 ]
 

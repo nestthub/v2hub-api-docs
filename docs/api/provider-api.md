@@ -1,37 +1,35 @@
 # Provider API
 
-Endpoints for providers to request access to a user's account and, once approved, manage subscriptions on that user's behalf. All endpoints require the `API-Token` header identifying the **provider** — see [Authentication → Provider Authentication](authentication.md#provider-authentication).
+Endpoints for a provider to request access to a user's account and, once approved, manage that user's subscriptions. All endpoints require `API-Token` identifying the **provider** (see [Authentication](authentication.md)).
 
 **Base Path**: `/api/v1/providers`
 
 ## Request Access to User
 
-Create a pending connection request to manage a user's subscriptions. If no account exists yet for `user_id`, one is created.
+Create (or, for an existing pending/approved connection, re-fetch) a connection to `user_id`.
 
 **Endpoint**: `POST /api/v1/providers/{user_id}`
 
-**Parameters**:
+**Behavior branches on whether the user already has an account**:
 
-- `user_id` (path, required): Target user ID
+- **User exists**: a `pending` authorization record is created (if one doesn't already exist) — no HMAC involved.
+- **User does not exist**: the API cannot create a pending authorization for a user it doesn't know about. Instead it returns a signed invite payload for a trusted service (e.g. a Telegram bot) to resolve — see [Authentication → Provider Connection-Invite HMAC](authentication.md#provider-connection-invite-hmac).
 
-**Response** (201 Created):
+**Response** `200 OK` ([`ProviderConnectionCreateResponse`](../types/response-models.md#providerconnectioncreateresponse)):
 
 ```json
 {
   "user_id": 12345,
   "status": "pending",
-  "connection_link": "https://v2hub.link/api/v1/connect/abc123"
+  "connection_link": "https://t.me/v2hubot?start=conn_a1b2c3d4e5f6a7b8c9d0e1f2_myprovider"
 }
 ```
 
-**Notes**:
-
-- The user must approve the request (via [Approve Provider Connection](user-self-service.md#approve-provider-connection)) before the provider can manage their subscriptions.
-- `connection_link` can be shared with the user to direct them to the approval flow.
+`connection_link` is only populated in the invite-payload branch (user doesn't exist yet); when the user already exists, `connection_link` is `null` and `status` directly reflects the (possibly pre-existing) authorization.
 
 **Error Responses**:
 
-- `409 Conflict`: Connection already exists
+- `409`: A connection already exists in a state this endpoint doesn't re-issue an invite for
 
 ---
 
@@ -39,11 +37,7 @@ Create a pending connection request to manage a user's subscriptions. If no acco
 
 **Endpoint**: `GET /api/v1/providers/{user_id}`
 
-**Parameters**:
-
-- `user_id` (path, required): Target user ID
-
-**Response** (200 OK):
+**Response** `200 OK` ([`ProviderConnectionResponse`](../types/response-models.md#providerconnectionresponse)):
 
 ```json
 {
@@ -54,38 +48,47 @@ Create a pending connection request to manage a user's subscriptions. If no acco
 
 **Error Responses**:
 
-- `404 Not Found`: Connection not found
+- `404`: No connection (or no user) found for `user_id`
 
 ---
 
 ## Revoke Connection
 
-Revoke the provider's own access to a user's account, without deleting the authorization record (it can be re-approved later).
+Revoke the provider's access **without** deleting the authorization record — it can later be re-approved (e.g. by the admin approve endpoint) without going through the invite flow again.
+
+**Endpoint**: `POST /api/v1/providers/{user_id}/revoke`
+
+**Response** `200 OK` ([`ProviderConnectionResponse`](../types/response-models.md#providerconnectionresponse)), with `status: "revoked"`.
+
+**Error Responses**:
+
+- `404`: Connection not found
+
+---
+
+## Delete Connection
+
+Permanently delete the authorization record between this provider and `user_id`. This is a distinct, stronger operation from [Revoke Connection](#revoke-connection) above — deletion removes the record entirely rather than marking it `revoked`.
 
 **Endpoint**: `DELETE /api/v1/providers/{user_id}`
 
-**Parameters**:
-
-- `user_id` (path, required): Target user ID
-
-**Response** (200 OK):
+**Response** `200 OK` ([`ProviderConnectionDeleteResponse`](../types/response-models.md#providerconnectiondeleteresponse)):
 
 ```json
 {
-  "user_id": 12345,
-  "status": "revoked"
+  "detail": "Connection deleted"
 }
 ```
 
 **Error Responses**:
 
-- `404 Not Found`: Connection not found
+- `404`: Connection not found
 
 ---
 
 ## Provider-Scoped Subscription Endpoints
 
-Once a connection is `approved`, every subscription and source endpoint documented in [Subscription Management](subscription-management.md) is available under the provider-scoped base path, operating on the target user's subscriptions instead of the provider's own:
+Once a connection's status is `approved`, every endpoint documented in [Subscription Management](subscription-management.md) is available under:
 
 ```
 /api/v1/providers/{user_id}/subs
@@ -96,8 +99,4 @@ Once a connection is `approved`, every subscription and source endpoint document
 /api/v1/providers/{user_id}/subs/{token}/refresh
 ```
 
-Request bodies, response schemas, and error codes are identical to their `/api/v1/subs/...` counterparts — see [Subscription Management](subscription-management.md) for the full reference. The only difference is the additional `user_id` path segment and the requirement that the calling provider hold an `approved` connection for that `user_id`.
-
-**Additional Error Response** (all endpoints in this group):
-
-- `403 Forbidden`: Connection not approved for this `user_id`
+Request bodies, response schemas, and error codes are identical to their `/api/v1/subs/...` counterparts. Subscriptions created this way carry the acting provider's name in their `provider_name` field when later fetched by the user or the provider — see [`SubscriptionResponse`](../types/response-models.md#subscriptionresponse).
